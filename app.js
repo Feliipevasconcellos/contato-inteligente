@@ -792,3 +792,40 @@ function showLoading() {
 function hideLoading() {
   loadingOverlay.classList.remove("active");
 }
+
+// Local storage functions
+function saveUserPreferences() {
+  const preferences = {
+    language: currentLanguage,
+    theme: currentTheme,
+    fontSize: currentFontSize,
+  };
+  // Note: Since local storage is not available in this environment,
+  // we'll simulate saving preferences in memory only
+  window.userPreferences = preferences;
+}
+
+function loadUserPreferences() {
+  // Simulate loading from local storage
+  const preferences = window.userPreferences || {
+    language: "pt",
+    theme: "light",
+    fontSize: 14,
+  };
+
+  currentLanguage = preferences.language;
+  currentTheme = preferences.theme;
+  currentFontSize = preferences.fontSize;
+
+  // Apply preferences
+  languageSelect.value = currentLanguage;
+  changeTheme(currentTheme);
+  document.documentElement.style.setProperty(
+    "--font-size-chat",
+    `${currentFontSize}px`
+  );
+  currentFontSizeSpan.textContent = `${currentFontSize}px`;
+}
+
+// Global functions for inline event handlers
+window.copyPixCode = copyPixCode;
