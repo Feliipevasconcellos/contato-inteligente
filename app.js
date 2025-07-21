@@ -552,3 +552,120 @@ function selectDonationAmount(amount) {
     ]);
   }, 1000);
 }
+
+function generatePIX() {
+  chatState.step = "pix_generated";
+
+  // Generate a fake PIX code for demonstration
+  const pixCode = generatePixCode();
+
+  setTimeout(() => {
+    const message = translations[currentLanguage].pix_generated.replace(
+      "{amount}",
+      chatState.donationAmount
+    );
+    addMessage("bot", message);
+
+    // Create PIX container
+    const pixContainer = document.createElement("div");
+    pixContainer.className = "pix-container";
+    pixContainer.innerHTML = `
+            <div class="pix-qr">📱</div>
+            <div class="pix-code">${pixCode}</div>
+            <button class="copy-btn" onclick="copyPixCode('${pixCode}')">
+                ${translations[currentLanguage].copy_pix}
+            </button>
+            <p style="margin-top: 16px; font-size: 14px; color: var(--color-text-secondary);">
+                ${translations[currentLanguage].pix_instructions}
+            </p>
+        `;
+
+    const lastMessage = chatMessages.lastElementChild;
+    lastMessage.querySelector(".message-content").appendChild(pixContainer);
+
+    setTimeout(() => {
+      addQuickButtons([{ text: "✅ Paguei via PIX", action: "pix_confirmed" }]);
+    }, 2000);
+  }, 1000);
+}
+
+function generatePixCode() {
+  // Generate a realistic looking PIX code
+  const chars =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "00020126";
+  for (let i = 0; i < 100; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function copyPixCode(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    const copyBtn = event.target;
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = translations[currentLanguage].pix_copied;
+    setTimeout(() => {
+      copyBtn.textContent = originalText;
+    }, 2000);
+  });
+}
+
+function confirmDonation() {
+  chatState.step = "confirmed";
+
+  const name = chatState.isAnonymous
+    ? "Doador Anônimo"
+    : chatState.userData.name;
+
+  setTimeout(() => {
+    const message = translations[currentLanguage].donation_confirmed
+      .replace("{name}", name)
+      .replace("{amount}", chatState.donationAmount);
+    addMessage("bot", message);
+
+    // Show success stories
+    setTimeout(() => showSuccessStories(), 2000);
+  }, 1000);
+}
+
+function showSuccessStories() {
+  const stories = [
+    translations[currentLanguage].success_story_1,
+    translations[currentLanguage].success_story_2,
+    translations[currentLanguage].success_story_3,
+  ];
+
+  const images = ["./img/Luna.jpg", "./img/max.jpg", "./img/santuario.jpg"];
+
+  stories.forEach((story, index) => {
+    setTimeout(() => {
+      addMessage("bot", story);
+
+      // Add image
+      const imageDiv = document.createElement("div");
+      imageDiv.style.textAlign = "center";
+      imageDiv.style.margin = "12px 0";
+      imageDiv.innerHTML = `<img src="${images[index]}" alt="História de sucesso" style="max-width: 100%; border-radius: 8px; box-shadow: var(--shadow-card);">`;
+
+      const lastMessage = chatMessages.lastElementChild;
+      lastMessage.querySelector(".message-content").appendChild(imageDiv);
+
+      if (index === stories.length - 1) {
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].final_thanks);
+          addQuickButtons([
+            {
+              text: translations[currentLanguage].more_info,
+              action: "more_info",
+            },
+            {
+              text: translations[currentLanguage].donate_again,
+              action: "donate_again",
+            },
+          ]);
+        }, 2000);
+      }
+    }, (index + 1) * 3000);
+  });
+}
