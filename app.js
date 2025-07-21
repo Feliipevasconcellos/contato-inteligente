@@ -669,3 +669,117 @@ function showSuccessStories() {
     }, (index + 1) * 3000);
   });
 }
+
+function resetChatForNewDonation() {
+  chatState = {
+    step: "donation_appeal",
+    userData: chatState.userData, // Keep user data
+    donationAmount: null,
+    isAnonymous: chatState.isAnonymous,
+  };
+  showDonationAppeal();
+}
+
+function resetChat() {
+  chatMessages.innerHTML = "";
+  chatState = {
+    step: "initial",
+    userData: {},
+    donationAmount: null,
+    isAnonymous: false,
+  };
+}
+
+function handleKeyPress(e) {
+  if (e.key === "Enter") {
+    sendMessage();
+  }
+}
+
+// Navigation functions
+function showSection(section) {
+  const sections = ["hero", "chat", "dashboard", "mission"];
+  sections.forEach((s) => {
+    const element = document.getElementById(`${s}Section`);
+    if (element) {
+      element.style.display = s === section ? "block" : "none";
+    }
+  });
+}
+
+function scrollToMission() {
+  showSection("hero");
+  setTimeout(() => {
+    missionSection.scrollIntoView({ behavior: "smooth" });
+  }, 100);
+}
+
+function showDashboard() {
+  showSection("dashboard");
+}
+
+function closeDashboard() {
+  showSection("hero");
+}
+
+// Accessibility functions
+function toggleAccessibilityMenu() {
+  accessibilityMenu.classList.toggle("active");
+}
+
+function changeLanguage() {
+  currentLanguage = languageSelect.value;
+  updateLanguage();
+  saveUserPreferences();
+
+  // If chat is active, update chat language
+  if (chatSection.style.display !== "none") {
+    // Add a message about language change
+    setTimeout(() => {
+      addMessage(
+        "bot",
+        currentLanguage === "pt"
+          ? "Idioma alterado para Português! 🇧🇷"
+          : "Language changed to English! 🇺🇸"
+      );
+    }, 500);
+  }
+}
+
+function updateLanguage() {
+  document.querySelectorAll("[data-translate]").forEach((element) => {
+    const key = element.getAttribute("data-translate");
+    if (translations[currentLanguage][key]) {
+      element.textContent = translations[currentLanguage][key];
+    }
+  });
+
+  // Update placeholders
+  if (chatInput) {
+    chatInput.placeholder = translations[currentLanguage].type_message;
+  }
+}
+
+function changeTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute("data-color-scheme", theme);
+
+  // Update button states
+  lightTheme.classList.toggle("active", theme === "light");
+  darkTheme.classList.toggle("active", theme === "dark");
+
+  saveUserPreferences();
+}
+
+function changeFontSize(direction) {
+  const newSize = currentFontSize + direction;
+  if (newSize >= 12 && newSize <= 18) {
+    currentFontSize = newSize;
+    document.documentElement.style.setProperty(
+      "--font-size-chat",
+      `${currentFontSize}px`
+    );
+    currentFontSizeSpan.textContent = `${currentFontSize}px`;
+    saveUserPreferences();
+  }
+}
