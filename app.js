@@ -162,3 +162,393 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeEventListeners();
   loadUserPreferences();
 });
+
+// Event listeners
+function initializeEventListeners() {
+  // Chat controls
+  startChatBtn.addEventListener("click", startChat);
+  closeChatBtn.addEventListener("click", closeChat);
+  sendMessageBtn.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", handleKeyPress);
+
+  // Navigation
+  learnMoreBtn.addEventListener("click", scrollToMission);
+  dashboardBtn.addEventListener("click", showDashboard);
+  closeDashboardBtn.addEventListener("click", closeDashboard);
+
+  // Accessibility
+  accessibilityBtn.addEventListener("click", toggleAccessibilityMenu);
+  closeAccessibility.addEventListener("click", toggleAccessibilityMenu);
+  languageSelect.addEventListener("change", changeLanguage);
+  lightTheme.addEventListener("click", () => changeTheme("light"));
+  darkTheme.addEventListener("click", () => changeTheme("dark"));
+  decreaseFont.addEventListener("click", () => changeFontSize(-1));
+  increaseFont.addEventListener("click", () => changeFontSize(1));
+}
+
+// Chat functionality
+function startChat() {
+  showLoading();
+  setTimeout(() => {
+    hideLoading();
+    showSection("chat");
+    initializeChat();
+  }, 1500);
+}
+
+function closeChat() {
+  showSection("hero");
+  resetChat();
+}
+
+function initializeChat() {
+  chatMessages.innerHTML = "";
+  chatState = {
+    step: "greeting",
+    userData: {},
+    donationAmount: null,
+    isAnonymous: false,
+  };
+
+  setTimeout(() => {
+    addMessage("bot", translations[currentLanguage].greeting);
+    setTimeout(() => {
+      addMessage("bot", translations[currentLanguage].lgpd_message);
+      addQuickButtons([
+        {
+          text: translations[currentLanguage].lgpd_agree,
+          action: "lgpd_agree",
+        },
+        {
+          text: translations[currentLanguage].lgpd_decline,
+          action: "lgpd_decline",
+        },
+      ]);
+    }, 1000);
+  }, 500);
+}
+
+function addMessage(sender, text, options = {}) {
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${sender}`;
+
+  const avatarDiv = document.createElement("div");
+  avatarDiv.className = "message-avatar";
+  avatarDiv.textContent = sender === "bot" ? "🐾" : "👤";
+
+  const contentDiv = document.createElement("div");
+  contentDiv.className = "message-content";
+  contentDiv.innerHTML = text.replace(/\n/g, "<br>");
+
+  messageDiv.appendChild(avatarDiv);
+  messageDiv.appendChild(contentDiv);
+
+  if (options.buttons) {
+    const buttonsDiv = document.createElement("div");
+    buttonsDiv.className = "quick-buttons";
+
+    options.buttons.forEach((button) => {
+      const btn = document.createElement("button");
+      btn.className = "quick-btn";
+      btn.textContent = button.text;
+      btn.addEventListener("click", () =>
+        handleQuickAction(button.action, button.value)
+      );
+      buttonsDiv.appendChild(btn);
+    });
+
+    contentDiv.appendChild(buttonsDiv);
+  }
+
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addQuickButtons(buttons) {
+  const buttonsDiv = document.createElement("div");
+  buttonsDiv.className = "quick-buttons";
+
+  buttons.forEach((button) => {
+    const btn = document.createElement("button");
+    btn.className = "quick-btn";
+    btn.textContent = button.text;
+    btn.addEventListener("click", () =>
+      handleQuickAction(button.action, button.value)
+    );
+    buttonsDiv.appendChild(btn);
+  });
+
+  chatMessages.appendChild(buttonsDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function handleQuickAction(action, value) {
+  // Remove existing quick buttons
+  const existingButtons = document.querySelectorAll(".quick-buttons");
+  existingButtons.forEach((btn) => btn.remove());
+
+  switch (action) {
+    case "lgpd_agree":
+      addMessage("user", translations[currentLanguage].lgpd_agree);
+      chatState.step = "presentation";
+      setTimeout(() => {
+        addMessage("bot", translations[currentLanguage].presentation);
+        addQuickButtons([
+          {
+            text: translations[currentLanguage].continue,
+            action: "start_data_collection",
+          },
+        ]);
+      }, 1000);
+      break;
+
+    case "lgpd_decline":
+      addMessage("user", translations[currentLanguage].lgpd_decline);
+      setTimeout(() => {
+        addMessage(
+          "bot",
+          "Compreendo! Você pode navegar pelo site e conhecer nosso trabalho. Quando quiser doar, estarei aqui! 🐾"
+        );
+      }, 500);
+      break;
+
+    case "start_data_collection":
+      addMessage("user", translations[currentLanguage].continue);
+      chatState.step = "data_collection";
+      setTimeout(() => {
+        addMessage("bot", translations[currentLanguage].data_collection);
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].ask_name);
+          addQuickButtons([
+            {
+              text: translations[currentLanguage].anonymous_option,
+              action: "anonymous",
+            },
+          ]);
+          chatState.step = "collecting_name";
+        }, 500);
+      }, 1000);
+      break;
+
+    case "anonymous":
+      addMessage("user", translations[currentLanguage].anonymous_option);
+      chatState.isAnonymous = true;
+      chatState.userData.name = "Doador Anônimo";
+      showDonationAppeal();
+      break;
+
+    case "donate_amount":
+      selectDonationAmount(value);
+      break;
+
+    case "custom_amount":
+      addMessage("user", translations[currentLanguage].custom_amount);
+      chatState.step = "collecting_custom_amount";
+      setTimeout(() => {
+        addMessage("bot", translations[currentLanguage].ask_custom_amount);
+      }, 500);
+      break;
+
+    case "pix_payment":
+      addMessage("user", translations[currentLanguage].pix_payment);
+      generatePIX();
+      break;
+
+    case "other_payment":
+      addMessage("user", translations[currentLanguage].other_payment);
+      setTimeout(() => {
+        addMessage(
+          "bot",
+          "Em breve teremos outras opções de pagamento! Por enquanto, que tal usar PIX? É rápido e seguro! 😊"
+        );
+      }, 500);
+      break;
+
+    case "pix_confirmed":
+      confirmDonation();
+      break;
+
+    case "more_info":
+      addMessage("user", translations[currentLanguage].more_info);
+      setTimeout(() => {
+        addMessage(
+          "bot",
+          "Você pode explorar nosso site para saber mais sobre nossa missão e histórias de sucesso! 📚"
+        );
+        scrollToMission();
+      }, 500);
+      break;
+
+    case "donate_again":
+      addMessage("user", translations[currentLanguage].donate_again);
+      setTimeout(() => {
+        resetChatForNewDonation();
+      }, 500);
+      break;
+  }
+}
+
+function sendMessage() {
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  addMessage("user", message);
+  chatInput.value = "";
+
+  processUserMessage(message);
+}
+
+function processUserMessage(message) {
+  switch (chatState.step) {
+    case "collecting_name":
+      if (message.length >= 2) {
+        chatState.userData.name = message;
+        chatState.step = "collecting_phone";
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].ask_phone);
+        }, 500);
+      } else {
+        setTimeout(() => {
+          addMessage(
+            "bot",
+            "Por favor, digite um nome válido (pelo menos 2 caracteres)."
+          );
+        }, 500);
+      }
+      break;
+
+    case "collecting_phone":
+      const phone = message.replace(/\D/g, "");
+      if (phone.length >= 10 && phone.length <= 11) {
+        chatState.userData.phone = phone;
+        chatState.step = "collecting_age";
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].ask_age);
+        }, 500);
+      } else {
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].invalid_phone);
+        }, 500);
+      }
+      break;
+
+    case "collecting_age":
+      const age = parseInt(message);
+      if (age >= 18 && age <= 120) {
+        chatState.userData.age = age;
+        showDonationAppeal();
+      } else {
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].invalid_age);
+        }, 500);
+      }
+      break;
+
+    case "collecting_custom_amount":
+      const amount = parseFloat(
+        message.replace(/[^\d.,]/g, "").replace(",", ".")
+      );
+      if (amount >= 1) {
+        selectDonationAmount(amount);
+      } else {
+        setTimeout(() => {
+          addMessage("bot", translations[currentLanguage].invalid_amount);
+        }, 500);
+      }
+      break;
+
+    default:
+      // Handle general conversation
+      handleGeneralMessage(message);
+      break;
+  }
+}
+
+function handleGeneralMessage(message) {
+  const lowerMessage = message.toLowerCase();
+  let response = "";
+
+  if (
+    lowerMessage.includes("oi") ||
+    lowerMessage.includes("olá") ||
+    lowerMessage.includes("hello")
+  ) {
+    response = "Olá! Como posso ajudar você hoje? 😊";
+  } else if (lowerMessage.includes("doar") || lowerMessage.includes("doação")) {
+    response = "Que maravilha que você quer doar! Vou te ajudar com isso. 💝";
+    setTimeout(() => showDonationAppeal(), 1000);
+  } else if (
+    lowerMessage.includes("animais") ||
+    lowerMessage.includes("pets")
+  ) {
+    response =
+      "Nós cuidamos de cães e gatos abandonados! Já resgatamos mais de 1.247 animais. Quer ver algumas histórias? 🐾";
+  } else if (
+    lowerMessage.includes("obrigad") ||
+    lowerMessage.includes("thank")
+  ) {
+    response = "Por nada! É um prazer ajudar você a fazer a diferença! ❤️";
+  } else {
+    response =
+      "Entendo! Se tiver qualquer dúvida sobre doações ou nosso trabalho, estarei aqui para ajudar! 🐾";
+  }
+
+  setTimeout(() => {
+    addMessage("bot", response);
+  }, 500);
+}
+
+function showDonationAppeal() {
+  chatState.step = "donation_appeal";
+  const name = chatState.isAnonymous ? "" : chatState.userData.name;
+
+  setTimeout(() => {
+    addMessage(
+      "bot",
+      `${name ? name + ", " : ""}${
+        translations[currentLanguage].donation_appeal
+      }`
+    );
+
+    const donationButtons = [
+      { text: "🍖 R$ 5", action: "donate_amount", value: 5 },
+      { text: "💉 R$ 10", action: "donate_amount", value: 10 },
+      { text: "🥘 R$ 15", action: "donate_amount", value: 15 },
+      { text: "🏥 R$ 25", action: "donate_amount", value: 25 },
+      { text: "⚕️ R$ 50", action: "donate_amount", value: 50 },
+      { text: "🚑 R$ 100", action: "donate_amount", value: 100 },
+      {
+        text: translations[currentLanguage].custom_amount,
+        action: "custom_amount",
+      },
+    ];
+
+    addQuickButtons(donationButtons);
+  }, 1000);
+}
+
+function selectDonationAmount(amount) {
+  chatState.donationAmount = amount;
+  chatState.step = "payment_method";
+
+  addMessage("user", `R$ ${amount}`);
+
+  setTimeout(() => {
+    const message = translations[currentLanguage].payment_method.replace(
+      "{amount}",
+      amount
+    );
+    addMessage("bot", message);
+
+    addQuickButtons([
+      {
+        text: translations[currentLanguage].pix_payment,
+        action: "pix_payment",
+      },
+      {
+        text: translations[currentLanguage].other_payment,
+        action: "other_payment",
+      },
+    ]);
+  }, 1000);
+}
