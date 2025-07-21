@@ -33,6 +33,39 @@
         </div>
     </header>
 
+    <!-- Accessibility Menu -->
+    <div class="accessibility-menu" id="accessibilityMenu">
+        <div class="accessibility-content">
+            <h3>🔧 Ferramentas de Acessibilidade</h3>
+            <div class="accessibility-options">
+                <div class="option-group">
+                    <label>🌐 Idioma</label>
+                    <select id="languageSelect" class="form-control">
+                        <option value="pt">Português</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label>🌙 Tema</label>
+                    <div class="theme-toggle">
+                        <button id="lightTheme" class="theme-btn active">☀️ Claro</button>
+                        <button id="darkTheme" class="theme-btn">🌙 Escuro</button>
+                    </div>
+                </div>
+                <div class="option-group">
+                    <label>🔤 Tamanho da Fonte</label>
+                    <div class="font-size-controls">
+                        <button id="decreaseFont" class="font-btn">A-</button>
+                        <span id="currentFontSize">14px</span>
+                        <button id="increaseFont" class="font-btn">A+</button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn--secondary" id="closeAccessibility">Fechar</button>
+        </div>
+    </div>
+
+
     <script src="app.js"></script>
 </body>
 
