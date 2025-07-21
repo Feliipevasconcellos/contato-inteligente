@@ -783,3 +783,12 @@ function changeFontSize(direction) {
     saveUserPreferences();
   }
 }
+
+// Loading functions
+function showLoading() {
+  loadingOverlay.classList.add("active");
+}
+
+function hideLoading() {
+  loadingOverlay.classList.remove("active");
+}
